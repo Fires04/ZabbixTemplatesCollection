@@ -1,0 +1,555 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: 618b6203cc1f4fa5aa0d2ce8b924b94d
+      name: Templates/Ubiquiti
+  templates:
+    - uuid: fae8b0b88a1343419d0e80344821af56
+      template: 'Ubiquiti UCG Ultra by SNMP'
+      name: 'Ubiquiti UCG Ultra by SNMP'
+      description: |
+        Basic SNMP monitoring template for Ubiquiti UniFi Cloud Gateway Ultra (UCG-Ultra).
+        Requires UniFi OS 4.0.6+ with SNMP enabled in:
+          Settings -> Control Plane -> Integrations -> SNMP
+        Uses standard MIBs (SNMPv2-MIB, UCD-SNMP-MIB, IF-MIB).
+        Tested with Zabbix 7.x.
+      groups:
+        - name: Templates/Ubiquiti
+      items:
+        - uuid: 77c1b95b6d7f403893ae6bcd2a28edef
+          name: 'SNMP agent availability'
+          type: INTERNAL
+          key: 'zabbix[host,snmp,available]'
+          delay: 1m
+          history: 7d
+          description: 'Availability of SNMP agent on the host.'
+          valuemap:
+            name: 'zabbix.host.available'
+          tags:
+            - tag: component
+              value: health
+          triggers:
+            - uuid: c76ce86d4b644aa3ae35ae72cc200e8f
+              expression: 'max(/Ubiquiti UCG Ultra by SNMP/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0'
+              name: 'No SNMP data collection'
+              priority: WARNING
+              description: 'SNMP is not available for polling. Please check device connectivity and SNMP settings.'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: dace4d0571984a149027df2e153d6620
+          name: 'ICMP ping'
+          type: SIMPLE
+          key: 'icmpping'
+          delay: 1m
+          history: 7d
+          description: 'ICMP ping availability.'
+          valuemap:
+            name: 'Service state'
+          tags:
+            - tag: component
+              value: health
+          triggers:
+            - uuid: 9fd453fc889b420c82ee2b191c8215e0
+              expression: 'max(/Ubiquiti UCG Ultra by SNMP/icmpping,#3)=0'
+              name: 'Unavailable by ICMP ping'
+              priority: HIGH
+              description: 'Last three attempts returned timeout. Please check device connectivity.'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: 4aba1b2d5b8245f7a1f8f7d0dcb23948
+          name: 'ICMP loss'
+          type: SIMPLE
+          key: 'icmppingloss'
+          delay: 1m
+          history: 7d
+          value_type: FLOAT
+          units: '%'
+          tags:
+            - tag: component
+              value: health
+        - uuid: f8a6c6ecded84ca0aba90180eb1c8684
+          name: 'ICMP response time'
+          type: SIMPLE
+          key: 'icmppingsec'
+          delay: 1m
+          history: 7d
+          value_type: FLOAT
+          units: s
+          tags:
+            - tag: component
+              value: health
+        - uuid: f9507431c74844109dd3042ca5db2398
+          name: 'System description'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.2.1.1.1.0'
+          key: 'system.descr'
+          delay: 1h
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'SNMPv2-MIB::sysDescr - textual description of the device.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: deeed00907bc41748875c0f72a5d4c29
+          name: 'System name'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.2.1.1.5.0'
+          key: 'system.name'
+          delay: 1h
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'SNMPv2-MIB::sysName - administratively assigned name.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 2ce2ea33334f4c558a110870950c2bb2
+          name: 'System location'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.2.1.1.6.0'
+          key: 'system.location'
+          delay: 1h
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'SNMPv2-MIB::sysLocation.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 38b24ef1662b4efe8499e7eac6955a41
+          name: 'System contact'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.2.1.1.4.0'
+          key: 'system.contact'
+          delay: 1h
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'SNMPv2-MIB::sysContact.'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 590bab0212af43c198db924687dc7590
+          name: 'System uptime'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.2.1.1.3.0'
+          key: 'system.uptime'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          units: uptime
+          description: 'SNMPv2-MIB::sysUpTime - time (in hundredths of a second) since the network management portion was last re-initialized.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: 86bf31e5730246e98fd59169d659678f
+              expression: 'last(/Ubiquiti UCG Ultra by SNMP/system.uptime)<10m'
+              name: 'Device has been restarted'
+              priority: INFO
+              description: 'Uptime is less than 10 minutes.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+        - uuid: 0e8091a23fb64fccb6e578a4e64260c3
+          name: 'CPU load (1 min average)'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.10.1.3.1'
+          key: 'system.cpu.load[1min]'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          description: 'UCD-SNMP-MIB::laLoad.1 - 1 minute load average.'
+          tags:
+            - tag: component
+              value: cpu
+          triggers:
+            - uuid: b87bd82d353a4fa19d186cad120796fb
+              expression: 'min(/Ubiquiti UCG Ultra by SNMP/system.cpu.load[1min],5m)>{$CPU.LOAD.MAX}'
+              name: 'High CPU load'
+              priority: WARNING
+              description: 'CPU 1-minute load average is over threshold for 5 minutes.'
+              tags:
+                - tag: scope
+                  value: performance
+        - uuid: d60c680204f04fb2873919e414f24df8
+          name: 'CPU load (5 min average)'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.10.1.3.2'
+          key: 'system.cpu.load[5min]'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          description: 'UCD-SNMP-MIB::laLoad.2 - 5 minute load average.'
+          tags:
+            - tag: component
+              value: cpu
+        - uuid: 89b0cf30ffca4efcb25a53f36c076c71
+          name: 'CPU load (15 min average)'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.10.1.3.3'
+          key: 'system.cpu.load[15min]'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          description: 'UCD-SNMP-MIB::laLoad.3 - 15 minute load average.'
+          tags:
+            - tag: component
+              value: cpu
+        - uuid: f6f27dc9ab474376a2382e85d56cbefa
+          name: 'CPU idle time'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.11.11.0'
+          key: 'system.cpu.idle'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: '%'
+          description: 'UCD-SNMP-MIB::ssCpuIdle - percentage of processor time spent idle.'
+          tags:
+            - tag: component
+              value: cpu
+        - uuid: 99ed2c9d824c40da82c1b67e81973b5a
+          name: 'CPU utilization'
+          type: CALCULATED
+          key: 'system.cpu.util'
+          params: '100-last(//system.cpu.idle)'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: '%'
+          description: 'Calculated CPU utilization (100 - idle).'
+          tags:
+            - tag: component
+              value: cpu
+          triggers:
+            - uuid: 2139b9e23c7d4743909fc6ea286593c6
+              expression: 'avg(/Ubiquiti UCG Ultra by SNMP/system.cpu.util,5m)>{$CPU.UTIL.MAX}'
+              name: 'High CPU utilization'
+              priority: WARNING
+              description: 'CPU utilization is too high. The system might be slow to respond.'
+              tags:
+                - tag: scope
+                  value: performance
+        - uuid: b468a2d0815e4d6fbeac00e549d04ab2
+          name: 'Memory total'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.4.5.0'
+          key: 'vm.memory.total'
+          delay: 5m
+          history: 7d
+          trends: 365d
+          units: B
+          description: 'UCD-SNMP-MIB::memTotalReal - total amount of real/physical memory.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: memory
+        - uuid: 09b9392b9cff4cbdbc2354dbefc3030f
+          name: 'Memory available'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.4.6.0'
+          key: 'vm.memory.available'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          units: B
+          description: 'UCD-SNMP-MIB::memAvailReal - amount of real/physical memory currently unused or available.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: memory
+        - uuid: cfd83547c8d946bc9f089c01404ab947
+          name: 'Memory cached'
+          type: SNMP_AGENT
+          snmp_oid: '1.3.6.1.4.1.2021.4.15.0'
+          key: 'vm.memory.cached'
+          delay: 5m
+          history: 7d
+          trends: 365d
+          units: B
+          description: 'UCD-SNMP-MIB::memCached - amount of memory used as cache.'
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: memory
+        - uuid: 5ff3c9e9628f49de9b3dbba33a91cefa
+          name: 'Memory utilization'
+          type: CALCULATED
+          key: 'vm.memory.util'
+          params: '(last(//vm.memory.total)-last(//vm.memory.available))/last(//vm.memory.total)*100'
+          delay: 1m
+          history: 7d
+          trends: 365d
+          value_type: FLOAT
+          units: '%'
+          description: 'Memory utilization in percent.'
+          tags:
+            - tag: component
+              value: memory
+          triggers:
+            - uuid: 1770d6af657a44388fd1e667e1cfee5f
+              expression: 'min(/Ubiquiti UCG Ultra by SNMP/vm.memory.util,5m)>{$MEMORY.UTIL.MAX}'
+              name: 'High memory utilization'
+              priority: AVERAGE
+              description: 'Memory utilization is over threshold.'
+              tags:
+                - tag: scope
+                  value: performance
+      discovery_rules:
+        - uuid: 6ceef4ebda69462b9c7bcc544d980401
+          name: 'Network interfaces discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#IFINDEX},1.3.6.1.2.1.2.2.1.1,{#IFNAME},1.3.6.1.2.1.31.1.1.1.1,{#IFDESCR},1.3.6.1.2.1.2.2.1.2,{#IFALIAS},1.3.6.1.2.1.31.1.1.1.18,{#IFTYPE},1.3.6.1.2.1.2.2.1.3,{#IFADMINSTATUS},1.3.6.1.2.1.2.2.1.7,{#IFOPERSTATUS},1.3.6.1.2.1.2.2.1.8]'
+          key: 'net.if.discovery'
+          delay: 1h
+          filter:
+            evaltype: AND
+            conditions:
+              - macro: '{#IFADMINSTATUS}'
+                value: '1'
+                formulaid: A
+              - macro: '{#IFTYPE}'
+                value: '{$NET.IF.IFTYPE.MATCHES}'
+                formulaid: B
+              - macro: '{#IFNAME}'
+                value: '{$NET.IF.IFNAME.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: C
+          description: 'Discovers network interfaces from IF-MIB.'
+          item_prototypes:
+            - uuid: 3e61666a54824dbfb9c0627abe6667a5
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Operational status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.2.2.1.8.{#IFINDEX}'
+              key: 'net.if.status[ifOperStatus.{#IFINDEX}]'
+              delay: 1m
+              history: 7d
+              valuemap:
+                name: 'IF-MIB::ifOperStatus'
+              description: 'IF-MIB::ifOperStatus - current operational state of the interface.'
+              tags:
+                - tag: component
+                  value: network
+                - tag: interface
+                  value: '{#IFNAME}'
+            - uuid: a7f71d4b46734f22aea5a1da47fce020
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Speed'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.15.{#IFINDEX}'
+              key: 'net.if.speed[ifHighSpeed.{#IFINDEX}]'
+              delay: 5m
+              history: 7d
+              trends: 365d
+              units: bps
+              description: 'IF-MIB::ifHighSpeed - estimate of the interface current bandwidth in megabits per second.'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1000000'
+              tags:
+                - tag: component
+                  value: network
+                - tag: interface
+                  value: '{#IFNAME}'
+            - uuid: 800d36b4fa284c28adea9e2834cf387a
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Bits received'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.6.{#IFINDEX}'
+              key: 'net.if.in[ifHCInOctets.{#IFINDEX}]'
+              delay: 1m
+              history: 7d
+              trends: 365d
+              units: bps
+              description: 'IF-MIB::ifHCInOctets - 64-bit counter of received octets.'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              tags:
+                - tag: component
+                  value: network
+                - tag: direction
+                  value: in
+                - tag: interface
+                  value: '{#IFNAME}'
+            - uuid: 17565a08af294202b1440083f05359a7
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Bits sent'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.31.1.1.1.10.{#IFINDEX}'
+              key: 'net.if.out[ifHCOutOctets.{#IFINDEX}]'
+              delay: 1m
+              history: 7d
+              trends: 365d
+              units: bps
+              description: 'IF-MIB::ifHCOutOctets - 64-bit counter of transmitted octets.'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+                - type: MULTIPLIER
+                  parameters:
+                    - '8'
+              tags:
+                - tag: component
+                  value: network
+                - tag: direction
+                  value: out
+                - tag: interface
+                  value: '{#IFNAME}'
+            - uuid: c8a698dc16784b419adb295980911008
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Inbound errors'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.2.2.1.14.{#IFINDEX}'
+              key: 'net.if.in.errors[ifInErrors.{#IFINDEX}]'
+              delay: 1m
+              history: 7d
+              trends: 365d
+              description: 'IF-MIB::ifInErrors - inbound packets containing errors.'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+              tags:
+                - tag: component
+                  value: network
+                - tag: direction
+                  value: in
+                - tag: interface
+                  value: '{#IFNAME}'
+            - uuid: 28ca18c2334f4d5398877bc9756e5b89
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Outbound errors'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.2.2.1.20.{#IFINDEX}'
+              key: 'net.if.out.errors[ifOutErrors.{#IFINDEX}]'
+              delay: 1m
+              history: 7d
+              trends: 365d
+              description: 'IF-MIB::ifOutErrors - outbound packets that could not be transmitted because of errors.'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+              tags:
+                - tag: component
+                  value: network
+                - tag: direction
+                  value: out
+                - tag: interface
+                  value: '{#IFNAME}'
+            - uuid: 3498453b02294d4986fa1abfb17bded3
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Inbound discards'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.2.1.2.2.1.13.{#IFINDEX}'
+              key: 'net.if.in.discards[ifInDiscards.{#IFINDEX}]'
+              delay: 1m
+              history: 7d
+              trends: 365d
+              description: 'IF-MIB::ifInDiscards - inbound packets discarded.'
+              preprocessing:
+                - type: CHANGE_PER_SECOND
+              tags:
+                - tag: component
+                  value: network
+                - tag: direction
+                  value: in
+                - tag: interface
+                  value: '{#IFNAME}'
+          trigger_prototypes:
+            - uuid: 59f5a422dd524024bb03202112199c4e
+              expression: 'last(/Ubiquiti UCG Ultra by SNMP/net.if.status[ifOperStatus.{#IFINDEX}])=2'
+              name: 'Interface [{#IFNAME}({#IFALIAS})]: Link down'
+              priority: AVERAGE
+              description: 'Interface operational status is down (2).'
+              tags:
+                - tag: scope
+                  value: availability
+      valuemaps:
+        - uuid: 0ae57cda7d754a7fabeb873ebfb3072d
+          name: 'IF-MIB::ifOperStatus'
+          mappings:
+            - value: '1'
+              newvalue: up
+            - value: '2'
+              newvalue: down
+            - value: '3'
+              newvalue: testing
+            - value: '4'
+              newvalue: unknown
+            - value: '5'
+              newvalue: dormant
+            - value: '6'
+              newvalue: notPresent
+            - value: '7'
+              newvalue: lowerLayerDown
+        - uuid: 6e47a86316dc4acf9713ac3952f58739
+          name: 'zabbix.host.available'
+          mappings:
+            - value: '0'
+              newvalue: unknown
+            - value: '1'
+              newvalue: available
+            - value: '2'
+              newvalue: unavailable
+        - uuid: 57ab70a552674f7a8ea57fa07a9d4d19
+          name: 'Service state'
+          mappings:
+            - value: '0'
+              newvalue: down
+            - value: '1'
+              newvalue: up
+      macros:
+        - macro: '{$SNMP_COMMUNITY}'
+          value: public
+          description: 'SNMPv2 community string. Override per host.'
+        - macro: '{$SNMP.TIMEOUT}'
+          value: 5m
+          description: 'Time after which SNMP unavailability triggers.'
+        - macro: '{$CPU.UTIL.MAX}'
+          value: '90'
+          description: 'CPU utilization threshold (percent).'
+        - macro: '{$CPU.LOAD.MAX}'
+          value: '5'
+          description: '1-minute load average threshold.'
+        - macro: '{$MEMORY.UTIL.MAX}'
+          value: '90'
+          description: 'Memory utilization threshold (percent).'
+        - macro: '{$NET.IF.IFTYPE.MATCHES}'
+          value: '^(6|24|117|131|135|161)$'
+          description: 'Interface types: 6=ethernet, 24=loopback, 117=gigabitEthernet, 131=tunnel, 135=l2vlan, 161=ieee8023adLag.'
+        - macro: '{$NET.IF.IFNAME.NOT_MATCHES}'
+          value: '^(lo|docker|veth|br-)'
+          description: 'Interface names to skip (regex).'
